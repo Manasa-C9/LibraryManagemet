@@ -1,5 +1,6 @@
 package com.planonsoftware;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -49,7 +50,7 @@ public class LibraryManagement {
     		{
     			currentUser=user;
     		
-    	         switch(user.role)
+    	         switch(currentUser.role)
     	            {
     	              case "admin" :
     		                adminMenu();
@@ -108,9 +109,12 @@ public class LibraryManagement {
     				System.out.println("\nUser Menu :");
     				System.out.println("1. Buy Book");
     				System.out.println("2. Rent Book");
-    				System.out.println("3. Search Book");
-    				System.out.println("4.View Book");
-    				System.out.println("5.Logout");
+    				System.out.println("3. Return Book");
+    				System.out.println("4. Search Book");
+                    System.out.println("5. View Books");
+    				System.out.println("6.Add Balance");    				
+    				System.out.println("7.View Balance");
+    				System.out.println("8.Logout");
     				System.out.println("Enter your choice: ");
     				int choice=sc.nextInt();
     				sc.nextLine();
@@ -122,12 +126,21 @@ public class LibraryManagement {
     				 rentBook();
     				 break;
     			 case 3:
-    				 searchBooks();
+    				 returnBook();
     				 break;
     			 case 4:
-    				 viewBooks();
+    				 searchBooks();
     				 break;
     			 case 5:
+    				 viewBooks();
+    				 break;
+    			 case 6:
+    				 addBalance();
+    				 break;
+    			 case 7:
+    				 viewBalance();
+    				 break;
+    			 case 8:
     				 System.out.println("Logging out .");
     				 return;
     			 default:
@@ -152,7 +165,7 @@ public class LibraryManagement {
                 System.out.println("3. Logout");
                 System.out.print("Enter your choice: ");
                 choice = sc.nextInt();
-                sc.nextLine();  // Consume newline
+                sc.nextLine();  
 
                 switch (choice) {
                     case 1:
@@ -178,9 +191,11 @@ public class LibraryManagement {
             String author = sc.nextLine();
             System.out.print("Enter number of copies: ");
             int copies = sc.nextInt();
+            System.out.print("Enter Book Price: ");
+            double price  = sc.nextDouble();
             sc.nextLine();
 
-            books.add(new Book(title, author, copies));
+            books.add(new Book(title, author, copies,price));
             System.out.println("Book added successfully.");
         }
       
@@ -206,14 +221,23 @@ public class LibraryManagement {
     			   System.out.println("Enter no of copies to buy : ");
     			   int copies=sc.nextInt();
     			   sc.nextLine();
-    			   if(book.copiesAvailable>=copies) {
+    			   if(book.copiesAvailable>=copies) 
+    			   {
+    				   double cost=copies*book.price;
+    				   if(currentUser.getBalance()>=cost) 
+    				   {
     				   book.copiesAvailable-=copies;
-    				   System.out.println("Books bought Successfully");
+    				   currentUser.deductBalance(cost);
+    				   System.out.println("Books bought Successfully. Total cost: "+cost+" rupees");
+    			       }
+    				   else {
+    					   System.out.println("Insufficient balance.Please add Balance ");
+    				        }
     			   }
     				else{
     					System.out.println("Not enough copies Available.Only "+book.copiesAvailable+" copies available");
     				
-    				}
+    				    }
     			   return;
     			   }
     		   }
@@ -229,7 +253,10 @@ public class LibraryManagement {
     			if(book.copiesAvailable>0)
     			{
     				book.copiesAvailable--;
-    				System.out.println("book rented Successfully");
+    				//book.borrowDate=LocalDate.of(2024,6,18);
+    				book.borrowDate=LocalDate.now();
+    				book.isRented=true;
+    				System.out.println("Book rented Successfully");
     			}	
     			else
     			{
@@ -239,6 +266,44 @@ public class LibraryManagement {
     		}
     	}
     	System.out.println("Book Not Found");
+    }
+    
+    public static void returnBook()
+    {
+    	System.out.println("Enter book title to return: ");
+    	String title=sc.nextLine();
+    	for(Book book:books) 
+    		{  
+    		    if(book.title.equalsIgnoreCase(title))
+    		    {
+    			if(book.isRented) {
+    				double lateFee=book.returnBook();
+    				currentUser.deductBalance(lateFee);
+    				book.copiesAvailable++;
+    				System.out.println("Book returned successfully.Late fee "+lateFee);
+    				
+    			}
+    			else
+    			{
+    				System.out.println("Book is not rented");
+    			}
+    			return;
+    		}
+    	}
+    	System.out.println("Book Not found");
+    }
+    
+    public static void addBalance() {
+    	System.out.println("Enter amount to add to balance ");
+    	double amount=sc.nextDouble();
+    	sc.nextLine();
+    	currentUser.addBalance(amount);
+    	System.out.println("Balance added Successfully . New Balance : "+currentUser.getBalance());
+    }
+    
+    public static void viewBalance()
+    { 
+    	System.out.println("Current Balance : "+currentUser.getBalance());
     }
     
     public static void viewBooks() {
@@ -257,7 +322,7 @@ public class LibraryManagement {
     	 String title=sc.nextLine();
     	 for(Book book:books) {
     		 if(book.title.equalsIgnoreCase(title)) {
-    	    		System.out.println("Title : "+book.title+", Author : "+book.author+" ,No.ofCopies "+book.copiesAvailable);
+    	    		System.out.println("Title : "+book.title+", Author : "+book.author+" ,No.ofCopies "+book.copiesAvailable+" , Price :"+book.price+" rupees");
     	    		return;
     		 }
     	 }
@@ -270,8 +335,10 @@ public class LibraryManagement {
     	String title=sc.nextLine();
     	System.out.println("Enter no of copies to publish :");
     	int copies=sc.nextInt();
+    	System.out.println("Enter book price:");
+    	double price=sc.nextDouble();
     	sc.nextLine();
-    	books.add(new Book(title,currentUser.username,copies));
+    	books.add(new Book(title,currentUser.username,copies,price));
     	System.out.println("Books Published Successfully");
     }
     
@@ -280,7 +347,7 @@ public class LibraryManagement {
     	System.out.println("\nList of books ");
     	for(Book book :books) {
     		if(book.author.equalsIgnoreCase(currentUser.username)) {
-	    		System.out.println("Title : "+book.title+", Author : "+book.author+",No.ofCopies "+book.copiesAvailable);
+	    		System.out.println("Title : "+book.title+", Author : "+book.author+",No.ofCopies "+book.copiesAvailable +" , Price :"+book.price+" rupees");
 	    		found=true;
     		}
     	}
